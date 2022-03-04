@@ -273,7 +273,14 @@ module.exports = {
   pp.prototype.getCanvasDataURL = c => {
     return c.canvas.toDataURL();
   }
+  pp.prototype.getCanvasBuffer = c => {
+      return c.canvas.toBuffer();
+    }
+  pp.prototype.getCanvasBlob = (c, type) => {
+    return c.canvas.toBlob(c, type)
+  }
   pp.prototype.registerMethod('getCanvasDataURL', pp.prototype.getCanvasDataURL)
+  pp.prototype.registerMethod('getCanvasBlob', pp.prototype.getCanvasBlob)
 
   //SAVE CANVAS
   pp.prototype.saveCanvas = (c, f, ext) => {
@@ -288,10 +295,17 @@ module.exports = {
           f = `${f}.png`;
         }
       }
+      
+      fs.writeFile(f, pp.prototype.getCanvasBuffer(c), err => {
+        if (err) reject(err)
+        else resolve(f)
+      })
+      /*
       fs.writeFile(`${f}`, pp.prototype.getCanvasDataURL(c).replace(/^data:image\/png;base64,/, ""), 'base64', err => {
         if(err) reject(err);
         else resolve(f);
-      });
+      }); */
+      
     });
   }
   pp.prototype.registerMethod('saveCanvas', pp.prototype.saveCanvas);
@@ -308,16 +322,18 @@ module.exports = {
 
   pp.prototype.saveFrames = (cnv, dir, ext, dur, framerate, cb) => {
     return new Promise((resolve, reject) => {
+      console.log('start of save frames')
       //get the frames as base64
       mainSketch.noLoop();
       mainSketch.redraw();
       let nrOfFrames = framerate * dur;
       let sFrames = [];
       for(let i = 0; i < nrOfFrames; i++) {
+        console.log('frame #', i)
         sFrames.push(pp.prototype.getCanvasDataURL(cnv));
         mainSketch.redraw();
       }
-      mainSketch.loop();
+      //mainSketch.loop();
 
       //cleanup folder
       if(!(fs.existsSync(dir) && fs.lstatSync(dir).isDirectory())) {
@@ -357,9 +373,12 @@ module.exports = {
         });
       } else {
         //save as images
+        console.log('saving images')
         sFrames.forEach((frame, i) => {
-          fs.writeFileSync(`${dir}/${i}.${ext}`, frame.replace(/^data:image\/png;base64,/, ""), 'base64', err => {
+          console.log('found frame')
+          fs.writeFileSync(`${dir}/${i}.${ext}`, frame.replace(/^data:image\/png;base64,/, ""), 'base64', err => {            console.log('wrote image file')
             if(err) {
+              console.log('error saveing image')
               if(cb) cb(err);
               else reject(err);
             }
