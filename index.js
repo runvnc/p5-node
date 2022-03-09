@@ -277,7 +277,7 @@ module.exports = {
       return c.canvas.toBuffer();
     }
   pp.prototype.getCanvasBlob = (c, type) => {
-    return c.canvas.toBlob(c, type)
+    return c.canvas.toBlob(()=>{}, type)
   }
   pp.prototype.registerMethod('getCanvasDataURL', pp.prototype.getCanvasDataURL)
   pp.prototype.registerMethod('getCanvasBlob', pp.prototype.getCanvasBlob)
