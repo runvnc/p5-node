@@ -49,7 +49,7 @@ const restartWebP = async () => {
 
 restartWebP().catch(console.error)
 
-const webpToBitmap = async (buff, alpha) => {
+const webpToBitmap = (buff, alpha) => {
   let arr = new Uint8Array(buff)
   console.log (arr.length)
   let bitmap = webp.decode(arr, arr.length, alpha)
