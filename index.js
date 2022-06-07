@@ -6,6 +6,7 @@ const isURL = require('is-url');
 const axios = require('axios');
 const fs2 = require('fs/promises')
 const wasm_webp = require('@saschazar/wasm-webp')
+const delay = require('delay')
 
 /*
 TODO
