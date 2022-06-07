@@ -16429,7 +16429,6 @@ module.exports = {
               }
             }),
             (c.Renderer2D.prototype.updatePixels = function(e, t, r, i) {
-              console.log('top of updatepixels')
               var n = this._pixelsState,
                 o = n._pixelDensity;
               void 0 === e &&
@@ -16439,9 +16438,7 @@ module.exports = {
                 ((t = e = 0), (r = this.width), (i = this.height)),
                 (r *= o),
                 (i *= o),
-                (console.log('calling putimagedata')),
                 this.drawingContext.putImageData(n.imageData, e, t, 0, 0, r, i),
-                (console.log('called putimagedata')),
                 (0 === e && 0 === t && r === this.width && i === this.height) ||
                   (n._pixelsDirty = !0);
             }),
