@@ -32,24 +32,31 @@ let wasmReady = false
 
 let webp
 
-wasm_webp({
-  onRunInitialized() {
-    wasmReady = true
+const restartWebP = async () => {
+  wasmReady = false
+  webp = await wasm_webp({
+    onRunInitialized() {
+      wasmReady = true
+    }
+  })
+  let tries = 0
+  while (!wasmReady && tries < 20) {
+    await delay(10)
+    tries += 1
   }
-}).then( m => {
-  webp = m
-})
+}
 
+restartWebP().catch(console.error)
 
-const webpToBitmap = (buff, alpha) => {
+const webpToBitmap = async (buff, alpha) => {
   let arr = new Uint8Array(buff)
   console.log (arr.length)
   let bitmap = webp.decode(arr, arr.length, alpha)
   const dim = webp.dimensions()
-  //webp.free()
-  
+  webp.free()  
   return {bitmap, dim}
 }
+
 
 function pad(n, width, z) {
   z = z || '0';
@@ -232,7 +239,12 @@ module.exports = {
           let st = Date.now()
           let buff = await fs2.readFile(path)
 
+          let tries__ = 0
           st = Date.now()
+          while (!wasmReady && tries__ < 50) {
+            await delay(10)
+            tries__ += 1
+          }
           let {bitmap, dim} = webpToBitmap(buff, true) 
           //console.log(Date.now()-st)
            
@@ -241,6 +253,8 @@ module.exports = {
           img.pixels.set(Uint8ClampedArray.from(bitmap))
           img.updatePixels()
           console.log(Date.now()-st)
+
+          restartWebP().catch(console.error)
           if (typeof cb==="function") cb(null,img)
           else {
             resolve(img)
