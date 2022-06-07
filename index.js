@@ -4,6 +4,8 @@ const path = require('path');
 const Jimp = require('jimp');
 const isURL = require('is-url');
 const axios = require('axios');
+const fs2 = require('fs/promises')
+const wasm_webp = require('@saschazar/wasm-webp')
 
 /*
 TODO
@@ -25,6 +27,29 @@ TODO
   registerMethod() -- done
   registerPlugin() -- done
 */
+
+let wasmReady = false
+
+let webp
+
+wasm_webp({
+  onRunInitialized() {
+    wasmReady = true
+  }
+}).then( m => {
+  webp = m
+})
+
+
+const webpToBitmap = (buff, alpha) => {
+  let arr = new Uint8Array(buff)
+  console.log (arr.length)
+  let bitmap = webp.decode(arr, arr.length, alpha)
+  const dim = webp.dimensions()
+  //webp.free()
+  
+  return {bitmap, dim}
+}
 
 function pad(n, width, z) {
   z = z || '0';
@@ -203,23 +228,49 @@ module.exports = {
           w,
           h;
       try {
+        if (path.toLowerCase().includes('.webp')) {
+          let st = Date.now()
+          let buff = await fs2.readFile(path)
+
+          st = Date.now()
+          let {bitmap, dim} = webpToBitmap(buff, true) 
+          //console.log(Date.now()-st)
+           
+          img = new pp.Image(dim.width,dim.height)
+          img.loadPixels()
+          img.pixels.set(Uint8ClampedArray.from(bitmap))
+          img.updatePixels()
+          console.log(Date.now()-st)
+          if (typeof cb==="function") cb(null,img)
+          else {
+            resolve(img)
+          }
+          return
+        }
+        
+        let st = Date.now()
         base = await Jimp.read(path);
+        console.log(10,Date.now()-st)
+        st = Date.now()
         w = base.getWidth();
         h = base.getHeight();
         img = new pp.Image(w, h);
+        console.log(20,Date.now()-st)
       } catch (error) {
         if(!cb) reject(error);
         else cb(error);
       }
       
+      st=Date.now()
       img.loadPixels();
+      st=Date.now()
       for(let i = 0; i < w; i++) {
         for(let j = 0; j < h; j++) {
           let col = Jimp.intToRGBA(base.getPixelColor(i, j));
           writeColor(img, w, i, j, [col.r, col.g, col.b, col.a]);
         }
       }
-
+      console.log(40,Date.now()-st)
       img.updatePixels();
       if(typeof cb === "function") cb(null, img);
       else {
@@ -16308,6 +16359,11 @@ module.exports = {
                 [r[i + 0], r[i + 1], r[i + 2], r[i + 3]]
               );
             }),
+            (c.Renderer2D.prototype.updateImageData = function (bitmap, w, h) {
+              let imdat = this.drawingContext.createImageData(w,h)
+              imdat.data = bitmap
+              this.drawingContext.putImageData(imdat, 0, 0)
+            }),
             (c.Renderer2D.prototype.loadPixels = function() {
               var e = this._pixelsState;
               if (e._pixelsDirty) {
@@ -16373,6 +16429,7 @@ module.exports = {
               }
             }),
             (c.Renderer2D.prototype.updatePixels = function(e, t, r, i) {
+              console.log('top of updatepixels')
               var n = this._pixelsState,
                 o = n._pixelDensity;
               void 0 === e &&
@@ -16382,7 +16439,9 @@ module.exports = {
                 ((t = e = 0), (r = this.width), (i = this.height)),
                 (r *= o),
                 (i *= o),
+                (console.log('calling putimagedata')),
                 this.drawingContext.putImageData(n.imageData, e, t, 0, 0, r, i),
+                (console.log('called putimagedata')),
                 (0 === e && 0 === t && r === this.width && i === this.height) ||
                   (n._pixelsDirty = !0);
             }),
@@ -18830,6 +18889,10 @@ module.exports = {
           }),
             (l.Image.prototype._setProperty = function(e, t) {
               (this[e] = t), this.setModified(!0);
+            }),
+            (l.Image.prototype.updateImageData = function( data, w, h) {
+              l.Renderer2D.prototype.updateImageData.call(this, data, w, h),
+              this.setModified(!0)
             }),
             (l.Image.prototype.loadPixels = function() {
               l.Renderer2D.prototype.loadPixels.call(this),
