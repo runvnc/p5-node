@@ -41,10 +41,11 @@ const restartWebP = async () => {
     }
   })
   let tries = 0
-  while (!wasmReady && tries < 20) {
+  while (!wasmReady && tries < 200) {
     await delay(10)
     tries += 1
   }
+  wasmReady = true
 }
 
 restartWebP().catch(console.error)
@@ -242,7 +243,8 @@ module.exports = {
 
           let tries__ = 0
           st = Date.now()
-          while (!wasmReady && tries__ < 50) {
+          console.log('Waiting for wasm')
+          while (!wasmReady && tries__ < 500) {
             await delay(10)
             tries__ += 1
           }
