@@ -40,11 +40,13 @@ const restartWebP = async () => {
       wasmReady = true
     }
   })
+  await delay(10)
   let tries = 0
-  while (!wasmReady && tries < 200) {
-    await delay(10)
-    tries += 1
-  }
+  //while (!wasmReady && tries < 400) {
+  //  await delay(10)
+  //  tries += 1
+ // }
+  console.log('wasmReady tries:',tries)
   wasmReady = true
 }
 
@@ -52,7 +54,7 @@ restartWebP().catch(console.error)
 
 const webpToBitmap = (buff, alpha) => {
   let arr = new Uint8Array(buff)
-  console.log (arr.length)
+  //console.log (arr.length)
   let bitmap = webp.decode(arr, arr.length, alpha)
   const dim = webp.dimensions()
   webp.free()  
@@ -240,23 +242,32 @@ module.exports = {
         if (path.toLowerCase().includes('.webp')) {
           let st = Date.now()
           let buff = await fs2.readFile(path)
-
+          console.log('read file',Date.now()-st)
           let tries__ = 0
           st = Date.now()
-          console.log('Waiting for wasm')
           while (!wasmReady && tries__ < 500) {
             await delay(10)
             tries__ += 1
           }
-          let {bitmap, dim} = webpToBitmap(buff, true) 
-          //console.log(Date.now()-st)
-           
-          img = new pp.Image(dim.width,dim.height)
-          img.loadPixels()
-          img.pixels.set(Uint8ClampedArray.from(bitmap))
-          img.updatePixels()
-          console.log(Date.now()-st)
+          console.log('wasmready',Date.now()-st)
 
+          st = Date.now()
+          let {bitmap, dim} = webpToBitmap(buff, true) 
+          console.log('webptobitmap',Date.now()-st)
+          st = Date.now() 
+          img = new pp.Image(dim.width,dim.height)
+          console.log('new Image',Date.now()-st)
+          st = Date.now()
+          img.loadPixels()
+          console.log('loadPixels',Date.now()-st)
+          
+          st = Date.now()
+          img.pixels.set(Uint8ClampedArray.from(bitmap))
+          console.log('pixels.set',Date.now()-st)
+          st = Date.now()
+          img.updatePixels()
+          console.log('updatePixels',Date.now()-st)
+      
           restartWebP().catch(console.error)
           if (typeof cb==="function") cb(null,img)
           else {
