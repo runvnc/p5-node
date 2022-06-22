@@ -10,6 +10,12 @@ const delay = require('delay')
 
 const print = console.log
 
+const {
+  Worker, isMainThread, parentPort, workerData
+} = require('node:worker_threads')
+
+let webpWorkers = []
+
 let mem_heap = 0
 let mem_arr = 0
 let mem_ext = 0
@@ -25,7 +31,6 @@ const copyArray = (src) => {
     arr[i] = src[i+1]
   return dst
 }
-
 
 const forcegc = () => {
   try {
@@ -101,7 +106,27 @@ wasm_webp().then(m => {
   wasmReady = true
   webp = m
 })
-  
+
+let webpworker_
+
+const webpToBitmap = async (buff, alpha) => {
+  return new Promise( (res, rej) => {
+    if (!webpworker_) {
+      webpworker_ = new Worker('./webpworker.js')
+    }
+    webpworker_.removeAllListeners()
+    webpworker_.on('message', res)
+    webpworker_.on('error', rej)
+    webpworker_.on('exit', (c) => { 
+      console.log('worker exit',c)
+      webpworker_ = null
+    })
+    
+    webpworker_.postMessage({buff, alpha})
+  })
+}
+
+/*
 const webpToBitmap = (buff, alpha) => {
   let arr = new Uint8Array(buff)
   //console.log (arr.length)
@@ -109,7 +134,7 @@ const webpToBitmap = (buff, alpha) => {
   const dim = webp.dimensions()
   //webp.free()  
   return {bitmap, dim}
-}
+}*/
 
 
 function pad(n, width, z) {
@@ -300,10 +325,11 @@ module.exports = {
             tries__ += 1
           }
           console.log('wasmready',Date.now()-st)
-          forcegc()
-          stmem()
+          //forcegc()
+          //stmem()
           st = Date.now()
-          let {bitmap, dim} = webpToBitmap(buff, true) 
+          let {bitmap, dim} = await webpToBitmap(buff, true) 
+          console.log({bitmap, dim})
           console.log('webptobitmap',Date.now()-st)
           
           st = Date.now() 
@@ -318,10 +344,10 @@ module.exports = {
           img.pixels.set(tmp)
           tmp = null
           console.log('pixels.set',Date.now()-st)
-          webp.free()
+          //webp.free()
           bitmap = null
-          forcegc()
-          prmem()
+          //forcegc()
+          //prmem()
           st = Date.now()
           img.updatePixels()
           console.log('updatePixels',Date.now()-st)
