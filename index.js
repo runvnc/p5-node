@@ -16,9 +16,23 @@ let mem_ext = 0
 
 let MB = 1024 * 1024
 
+let KB = 1024
+
+const copyArray = (src) => {
+  const dst = new ArrayBuffer(src.length)
+  const arr = new Uint8Array(dst)
+  for (let i=0; i<src.length; i++)
+    arr[i] = src[i+1]
+  return dst
+}
+
+
 const forcegc = () => {
   try {
-    if (global.gc) {global.gc();}
+    if (global.gc) {
+      global.gc();
+      console.log('called gc')
+    }
   } catch (e) {
     console.log("`node --expose-gc filename.js`")
     process.exit()
@@ -27,15 +41,15 @@ const forcegc = () => {
 
 const stmem = (x) => {
   let mem = process.memoryUsage()
-  mem_heap = mem.heapUsed / MB
-  mem_arr = mem.arrayBuffers / MB 
-  mem_ext = mem.external / MB
+  mem_heap = mem.heapUsed / KB
+  mem_arr = mem.arrayBuffers / KB 
+  mem_ext = mem.external / KB
 }
 
 const prmem = (what) => {
   let now_mem = process.memoryUsage()
-  let delta_mem_arr = (now_mem.arrayBuffers / MB) - mem_arr
-  let delta_mem_ext = (now_mem.external / MB) - mem_ext
+  let delta_mem_arr = Math.round((now_mem.arrayBuffers / KB) - mem_arr)
+  let delta_mem_ext = Math.round((now_mem.external / KB) - mem_ext)
   print("arrays:",delta_mem_arr," external:",delta_mem_ext)
 }
 
@@ -286,23 +300,27 @@ module.exports = {
             tries__ += 1
           }
           console.log('wasmready',Date.now()-st)
+          forcegc()
           stmem()
           st = Date.now()
           let {bitmap, dim} = webpToBitmap(buff, true) 
           console.log('webptobitmap',Date.now()-st)
-          prmem()
+          
           st = Date.now() 
           img = new pp.Image(dim.width,dim.height)
           console.log('new Image',Date.now()-st)
           st = Date.now()
           img.loadPixels()
           console.log('loadPixels',Date.now()-st)
-          
+          //let tempArray = Uint8ClampedArray.from(bitmap)
           st = Date.now()
-          img.pixels.set(Uint8ClampedArray.from(bitmap))
+          let tmp = copyArray(bitmap)
+          img.pixels.set(tmp)
+          tmp = null
           console.log('pixels.set',Date.now()-st)
           webp.free()
           bitmap = null
+          forcegc()
           prmem()
           st = Date.now()
           img.updatePixels()
