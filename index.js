@@ -5,8 +5,39 @@ const Jimp = require('jimp');
 const isURL = require('is-url');
 const axios = require('axios');
 const fs2 = require('fs/promises')
-const wasm_webp = require('@saschazar/wasm-webp')
+const wasm_webp = require('@runvnc/wasm-webp')
 const delay = require('delay')
+
+const print = console.log
+
+let mem_heap = 0
+let mem_arr = 0
+let mem_ext = 0
+
+let MB = 1024 * 1024
+
+const forcegc = () => {
+  try {
+    if (global.gc) {global.gc();}
+  } catch (e) {
+    console.log("`node --expose-gc filename.js`")
+    process.exit()
+  }
+}
+
+const stmem = (x) => {
+  let mem = process.memoryUsage()
+  mem_heap = mem.heapUsed / MB
+  mem_arr = mem.arrayBuffers / MB 
+  mem_ext = mem.external / MB
+}
+
+const prmem = (what) => {
+  let now_mem = process.memoryUsage()
+  let delta_mem_arr = (now_mem.arrayBuffers / MB) - mem_arr
+  let delta_mem_ext = (now_mem.external / MB) - mem_ext
+  print("arrays:",delta_mem_arr," external:",delta_mem_ext)
+}
 
 /*
 TODO
@@ -33,6 +64,7 @@ let wasmReady = false
 
 let webp
 
+/*
 const restartWebP = async () => {
   wasmReady = false
   webp = await wasm_webp({
@@ -48,16 +80,20 @@ const restartWebP = async () => {
  // }
   console.log('wasmReady tries:',tries)
   wasmReady = true
-}
+} */
 
-restartWebP().catch(console.error)
-
+//restartWebP().catch(console.error)
+wasm_webp().then(m => {
+  wasmReady = true
+  webp = m
+})
+  
 const webpToBitmap = (buff, alpha) => {
   let arr = new Uint8Array(buff)
   //console.log (arr.length)
   let bitmap = webp.decode(arr, arr.length, alpha)
   const dim = webp.dimensions()
-  webp.free()  
+  //webp.free()  
   return {bitmap, dim}
 }
 
@@ -250,10 +286,11 @@ module.exports = {
             tries__ += 1
           }
           console.log('wasmready',Date.now()-st)
-
+          stmem()
           st = Date.now()
           let {bitmap, dim} = webpToBitmap(buff, true) 
           console.log('webptobitmap',Date.now()-st)
+          prmem()
           st = Date.now() 
           img = new pp.Image(dim.width,dim.height)
           console.log('new Image',Date.now()-st)
@@ -264,11 +301,14 @@ module.exports = {
           st = Date.now()
           img.pixels.set(Uint8ClampedArray.from(bitmap))
           console.log('pixels.set',Date.now()-st)
+          webp.free()
+          bitmap = null
+          prmem()
           st = Date.now()
           img.updatePixels()
           console.log('updatePixels',Date.now()-st)
       
-          restartWebP().catch(console.error)
+          //restartWebP().catch(console.error)
           if (typeof cb==="function") cb(null,img)
           else {
             resolve(img)
