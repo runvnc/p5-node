@@ -5,7 +5,7 @@ const Jimp = require('jimp');
 const isURL = require('is-url');
 const axios = require('axios');
 const fs2 = require('fs/promises')
-const wasm_webp = require('@saschazar/wasm-webp')
+const wasm_webp = require('@runvnc/wasm-webp')
 const delay = require('delay')
 
 const print = console.log
