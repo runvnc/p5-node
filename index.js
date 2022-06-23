@@ -5,7 +5,7 @@ const Jimp = require('jimp');
 const isURL = require('is-url');
 const axios = require('axios');
 const fs2 = require('fs/promises')
-const wasm_webp = require('@runvnc/wasm-webp')
+const wasm_webp = require('@saschazar/wasm-webp')
 const delay = require('delay')
 
 const print = console.log
@@ -320,16 +320,15 @@ module.exports = {
           console.log('read file',Date.now()-st)
           let tries__ = 0
           st = Date.now()
-          while (!wasmReady && tries__ < 500) {
-            await delay(10)
-            tries__ += 1
-          }
-          console.log('wasmready',Date.now()-st)
+          //while (!wasmReady && tries__ < 500) {
+          //  await delay(10)
+          //  tries__ += 1
+         // }
+          //console.log('wasmready',Date.now()-st)
           //forcegc()
           //stmem()
           st = Date.now()
           let {bitmap, dim} = await webpToBitmap(buff, true) 
-          console.log({bitmap, dim})
           console.log('webptobitmap',Date.now()-st)
           
           st = Date.now() 
@@ -340,8 +339,7 @@ module.exports = {
           console.log('loadPixels',Date.now()-st)
           //let tempArray = Uint8ClampedArray.from(bitmap)
           st = Date.now()
-          let tmp = copyArray(bitmap)
-          img.pixels.set(tmp)
+          img.pixels.set(bitmap)
           tmp = null
           console.log('pixels.set',Date.now()-st)
           //webp.free()
