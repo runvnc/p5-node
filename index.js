@@ -119,22 +119,12 @@ const webpToBitmap = async (buff, alpha) => {
     webpworker_.on('error', rej)
     webpworker_.on('exit', (c) => { 
       console.log('worker exit',c)
-      webpworker_ = null
+      webpworker_ = new Worker('./webpworker.js')
     })
     
     webpworker_.postMessage({buff, alpha})
   })
 }
-
-/*
-const webpToBitmap = (buff, alpha) => {
-  let arr = new Uint8Array(buff)
-  //console.log (arr.length)
-  let bitmap = webp.decode(arr, arr.length, alpha)
-  const dim = webp.dimensions()
-  //webp.free()  
-  return {bitmap, dim}
-}*/
 
 
 function pad(n, width, z) {
