@@ -83,46 +83,62 @@ let wasmReady = false
 
 let webp
 
-/*
-const restartWebP = async () => {
-  wasmReady = false
-  webp = await wasm_webp({
-    onRunInitialized() {
-      wasmReady = true
-    }
-  })
-  await delay(10)
-  let tries = 0
-  //while (!wasmReady && tries < 400) {
-  //  await delay(10)
-  //  tries += 1
- // }
-  console.log('wasmReady tries:',tries)
-  wasmReady = true
-} */
-
-//restartWebP().catch(console.error)
 wasm_webp().then(m => {
   wasmReady = true
   webp = m
 })
 
-let webpworker_
+const makeWorker = (n) => {
+  let webpworker_ = new Worker('./webpworker.js', {workerData:n})
+  webpworker_.on('message', (m) => {
+    if (m.done) {
+      let iii = m.n
+      workers[iii] = null
+      webpworker_.terminate()
+      workers[iii] = makeWorker(iii)
+    } else {
+      let {jobn} = m
+      finishers[jobn+''].res(m)
+    }
+  })
+  webpworker_.on('error', () => {
+    finishers[mi.jobn+''].rej(m)
+    throw new Error('webp worker crashed.')
+  })
+  webpworker_.on('exit', (c) => { 
+    console.log('worker exit',c)
+  })
+  return webpworker_
+}
+
+let finishers = {}
+
+let workers = [makeWorker(0),
+               makeWorker(1),
+               makeWorker(2)]
+
+let jobn = 0
+
 
 const webpToBitmap = async (buff, alpha) => {
-  return new Promise( (res, rej) => {
-    if (!webpworker_) {
-      webpworker_ = new Worker('./webpworker.js')
+  return new Promise( (res, rej) => {   
+    finishers[jobn+''] = {res, rej}
+    let webworker_ = null
+    let ttt = 0
+    let nx = 0
+    while (!webworker_ && ttt < 100) {
+      webworker_ = workers[Math.round(Math.random()*3)]
+      ttt++
     }
-    webpworker_.removeAllListeners()
-    webpworker_.on('message', res)
-    webpworker_.on('error', rej)
-    webpworker_.on('exit', (c) => { 
-      console.log('worker exit',c)
-      webpworker_ = new Worker('./webpworker.js')
-    })
-    
-    webpworker_.postMessage({buff, alpha})
+    finishers[jobn+''].n = nx 
+    if (!webworker_) throw new Error('Could not get webp worker.')
+    webworker_.postMessage({buff, alpha, jobn})
+    jobn++
+    if (Object.keys(finishers).length > 20) {
+      for (let i = 0; i< jobn-5; i++) {
+        delete finishers[i+'']
+      }
+    }
   })
 }
 
