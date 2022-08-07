@@ -90,15 +90,21 @@ wasm_webp().then(m => {
 
 const makeWorker = (n) => {
   let webpworker_ = new Worker('./webpworker.js', {workerData:n})
+  webpworker_.isBusy = false
   webpworker_.on('message', (m) => {
     if (m.done) {
+      let {jobn} = m
       let iii = m.n
       workers[iii] = null
+      finishers[jobn+''].res(m)
+      setTimeout(() => {delete finishers[jobn+'']}, 1000)
       webpworker_.terminate()
       workers[iii] = makeWorker(iii)
     } else {
       let {jobn} = m
       finishers[jobn+''].res(m)
+      webpworker_.isBusy = false
+      setTimeout(() => {delete finishers[jobn+'']}, 1000) 
     }
   })
   webpworker_.on('error', () => {
@@ -119,26 +125,54 @@ let workers = [makeWorker(0),
 
 let jobn = 0
 
+// get the next worker that is free
+// if there is no worker free
+// then wait a few ms
+//
 
 const webpToBitmap = async (buff, alpha) => {
+  let wi
+  let webworker_ = null
+  let ttt = 0
+  while (!webworker_ && ttt < 2000) {
+    wi = 0
+    while (!webworker_ && wi < 3) {
+      if (workers[wi].isBusy) {
+        //console.log('worker '+wi+' is busy')
+        wi++
+      } else {
+        //console.log('worker '+wi+' AVAILBLE')
+        webworker_ = workers[wi]
+        webworker_.isBusy = true
+      }
+    }
+    if (!webworker_) {
+      await delay(10)
+      //console.log('waiting for available webworker')
+    }
+    ttt += 1
+  }
+
   return new Promise( (res, rej) => {   
     finishers[jobn+''] = {res, rej}
-    let webworker_ = null
-    let ttt = 0
+    //let webworker_ = null
     let nx = 0
-    while (!webworker_ && ttt < 100) {
-      webworker_ = workers[Math.round(Math.random()*3)]
-      ttt++
-    }
+    
+    //while (!webworker_ && ttt < 4) {
+   //   webworker_ = workers[Math.round(Math.random()*3)]
+    //  ttt++
+    //}
     finishers[jobn+''].n = nx 
-    if (!webworker_) throw new Error('Could not get webp worker.')
+    if (!webworker_) rej('Could not get webp worker.')
+    webworker_.isBusy = true
     webworker_.postMessage({buff, alpha, jobn})
     jobn++
-    if (Object.keys(finishers).length > 20) {
+    /*
+    if (Object.keys(finishers).length > 15) {
       for (let i = 0; i< jobn-5; i++) {
         delete finishers[i+'']
       }
-    }
+    } */
   })
 }
 
