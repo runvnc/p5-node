@@ -1,9 +1,10 @@
 const fs = require('fs')
 const { ZSTDDecompress } = require('simple-zstd')
 const concat = require('concat-stream')
-const {spawn,exec} = require('child_process')
+const {spawn} = require('child_process')
 const fs2 = require('fs/promises')
-
+const util = require('node:util');
+const exec = util.promisify(require('node:child_process').exec);
 
 let nn = 0
 
@@ -21,7 +22,7 @@ async function getZSTDdata(filename) {
       // Set the high water mark for the decompress stream.
       //const zstd = spawn('zstd', ['-d', filename, '-c'])
       let tmp = '/tmp/'+Date.now()+nn
-      const {stdout, stderr} = exec(`zstd -d ${filename} -o ${tmp}`)
+      const {stdout, stderr} = await exec(`zstd -d ${filename} -o ${tmp}`)
       let buf = await fs2.readFile(tmp)
       resolve(buf)
       //zstd.stdin.highWaterMark = 16000000
