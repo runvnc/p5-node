@@ -2,7 +2,7 @@ const fs = require('fs')
 const { ZSTDDecompress } = require('simple-zstd')
 const concat = require('concat-stream')
 
-export async function getZSTDdata(filename) {
+async function getZSTDdata(filename) {
   if (fs.existsSync(filename)) {
     // Set the high water mark for the input stream.
     const inputStream = fs.createReadStream(filename, { highWaterMark: 16000000 });
@@ -22,4 +22,4 @@ export async function getZSTDdata(filename) {
   }
 }
 
-
+module.exports = {getZSTDdata}
