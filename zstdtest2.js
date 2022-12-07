@@ -14,7 +14,7 @@ async function getZSTDdata(filename) {
       }, { highWaterMark: 16000000 });
 
       // Set the high water mark for the decompress stream.
-      const decompressStream = ZSTDDecompress({ highWaterMark: 16000000 });
+      const decompressStream = ZSTDDecompress()
       inputStream.pipe(decompressStream).pipe(outputStream);
     });
 
