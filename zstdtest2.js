@@ -28,11 +28,11 @@ async function getZSTDdata(filename) {
       //zstd.stdin.highWaterMark = 16000000
 
       //inputStream.pipe(zstd.stdin,{highWaterMark:16000000})
-      zstd.stdout.highWaterMark = 16000000
-      zstd.stdout.pipe(outputStream)
-      zstd.stderr.on('data', (d) => {
-        console.warn(String(d))
-      })
+      //zstd.stdout.highWaterMark = 16000000
+      //zstd.stdout.pipe(outputStream)
+      //zstd.stderr.on('data', (d) => {
+      //  console.warn(String(d))
+      //})
       //const decompressStream = ZSTDDecompress({},{highWaterMark:16000000})
       //inputStream.pipe(decompressStream).pipe(outputStream);
     });
