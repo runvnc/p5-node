@@ -7,6 +7,7 @@ const axios = require('axios');
 const fs2 = require('fs/promises')
 const wasm_webp = require('@runvnc/wasm-webp')
 const delay = require('delay')
+const {getZSTDdata} = require('./zstdtest2.js')
 
 const print = console.log
 
@@ -354,6 +355,37 @@ module.exports = {
           w,
           h;
       try {
+        if (path.toLowerCase().includes('.zstd')) {
+          let st = Date.now()
+          let bitmap = await getZSTDdata(path)
+          console.log('read file',Date.now()-st)
+          let tries__ = 0
+          st = Date.now()
+          let dim = {width: 2500, height: 2500}
+          st = Date.now() 
+          img = new pp.Image(dim.width,dim.height)
+          console.log('new Image',Date.now()-st)
+          st = Date.now()
+          img.loadPixels()
+          console.log('loadPixels',Date.now()-st)
+          st = Date.now()
+          img.pixels.set(bitmap)
+          tmp = null
+          console.log('pixels.set',Date.now()-st)
+          bitmap = null
+          st = Date.now()
+          img.updatePixels()
+          console.log('updatePixels',Date.now()-st)
+      
+          if (typeof cb==="function") cb(null,img)
+          else {
+            resolve(img)
+          }
+          return
+ 
+
+
+        }
         if (path.toLowerCase().includes('.webp')) {
           let st = Date.now()
           let buff = await fs2.readFile(path)
